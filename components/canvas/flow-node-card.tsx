@@ -125,7 +125,7 @@ export const FlowNodeCard = memo(function FlowNodeCard({ id, data, selected, wid
                     }
 
                     const result = await response.json();
-                    
+
                     updateNodeField(id, "mediaDataUrl", result.url);
                     updateNodeField(id, "mimeType", result.mimeType);
                     updateNodeField(id, "fileName", result.fileName);
@@ -133,7 +133,7 @@ export const FlowNodeCard = memo(function FlowNodeCard({ id, data, selected, wid
                   } catch (error) {
                     console.error("Upload error:", error);
                     updateNodeField(id, "status", "failed");
-                    alert("Failed to upload image. Please check your Supabase connection.");
+                    alert("Failed to upload image. Please check your Firebase connection.");
                   }
                 }}
               />

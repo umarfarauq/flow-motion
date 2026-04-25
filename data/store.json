@@ -1,0 +1,360 @@
+{
+  "projects": {
+    "KKD0Y8hISJSOI3TfEW6IR": {
+      "id": "KKD0Y8hISJSOI3TfEW6IR",
+      "userId": "local-user",
+      "name": "New Motion Project",
+      "createdAt": "2026-04-25T13:35:48.542Z",
+      "updatedAt": "2026-04-25T13:36:01.150Z"
+    },
+    "Zoq3wiy-nqMOe29yD14Ry": {
+      "id": "Zoq3wiy-nqMOe29yD14Ry",
+      "userId": "local-user",
+      "name": "New Motion Project",
+      "createdAt": "2026-04-25T13:49:38.654Z",
+      "updatedAt": "2026-04-25T13:49:38.654Z"
+    }
+  },
+  "workflows": {
+    "UtXb7SGJ4z3GR_Oo5f82a": {
+      "id": "UtXb7SGJ4z3GR_Oo5f82a",
+      "projectId": "KKD0Y8hISJSOI3TfEW6IR",
+      "name": "Default Workflow",
+      "nodes": [
+        {
+          "id": "tp9KNfqPEhuw2QeP6REtZ",
+          "type": "textPrompt",
+          "position": {
+            "x": -48,
+            "y": 48
+          },
+          "data": {
+            "label": "Text Prompt",
+            "description": "Provide creative direction, narrative, or a motion brief.",
+            "category": "input",
+            "fields": [
+              {
+                "key": "prompt",
+                "label": "Prompt",
+                "placeholder": "Describe the motion sequence you want to generate.",
+                "multiline": true
+              }
+            ],
+            "values": {
+              "prompt": "create a motion design"
+            },
+            "status": "idle"
+          },
+          "width": 343,
+          "height": 336,
+          "selected": false,
+          "positionAbsolute": {
+            "x": -48,
+            "y": 48
+          },
+          "dragging": false
+        },
+        {
+          "id": "JQrTvzdF8xnMCncQRMha4",
+          "type": "mediaUpload",
+          "position": {
+            "x": -96,
+            "y": 456
+          },
+          "data": {
+            "label": "Media Upload",
+            "description": "Upload an image or provide an image URL to use as the first frame for video generation.",
+            "category": "input",
+            "fields": [
+              {
+                "key": "mediaUrl",
+                "label": "Image URL",
+                "placeholder": "https://cdn.example.com/asset.png"
+              }
+            ],
+            "values": {
+              "mediaUrl": "",
+              "status": "ready",
+              "mediaDataUrl": "http://localhost:3000/uploads/QOnQtFIyIPpuSOtM6wXjD.jpg",
+              "mimeType": "image/jpeg",
+              "fileName": "giorgio-trovato-K62u25Jk6vo-unsplash.jpg"
+            },
+            "status": "ready"
+          },
+          "width": 529,
+          "height": 507,
+          "selected": true,
+          "positionAbsolute": {
+            "x": -96,
+            "y": 456
+          },
+          "dragging": false
+        },
+        {
+          "id": "V59iXxbpv2PrQ6QtTNyeA",
+          "type": "videoRender",
+          "position": {
+            "x": 480,
+            "y": 120
+          },
+          "data": {
+            "label": "Video Render",
+            "description": "Generate render instructions and export-ready motion output.",
+            "category": "output",
+            "values": {},
+            "status": "idle"
+          },
+          "width": 394,
+          "height": 193
+        }
+      ],
+      "edges": [
+        {
+          "id": "0Mzfxzm-BJCXbBlTTCdEi",
+          "source": "tp9KNfqPEhuw2QeP6REtZ",
+          "target": "V59iXxbpv2PrQ6QtTNyeA"
+        },
+        {
+          "id": "bN3PCz3C15iJnZ8geqxDv",
+          "source": "JQrTvzdF8xnMCncQRMha4",
+          "target": "V59iXxbpv2PrQ6QtTNyeA"
+        }
+      ],
+      "createdAt": "2026-04-25T13:35:48.542Z",
+      "updatedAt": "2026-04-25T13:39:15.638Z"
+    },
+    "Jk70pFOT3NUBoRLNRq64C": {
+      "id": "Jk70pFOT3NUBoRLNRq64C",
+      "projectId": "Zoq3wiy-nqMOe29yD14Ry",
+      "name": "Default Workflow",
+      "nodes": [
+        {
+          "id": "ZxHrHKWuCbzU3qRDdxFMd",
+          "type": "textPrompt",
+          "position": {
+            "x": 80,
+            "y": 120
+          },
+          "data": {
+            "label": "Text Prompt",
+            "description": "Provide creative direction, narrative, or a motion brief.",
+            "category": "input",
+            "fields": [
+              {
+                "key": "prompt",
+                "label": "Prompt",
+                "placeholder": "Describe the motion sequence you want to generate.",
+                "multiline": true
+              }
+            ],
+            "values": {
+              "prompt": "create a motion design for this"
+            },
+            "status": "idle"
+          },
+          "width": 343,
+          "height": 336
+        },
+        {
+          "id": "dqYka8P_e3AHH2u6pgnm-",
+          "type": "mediaUpload",
+          "position": {
+            "x": 80,
+            "y": 360
+          },
+          "data": {
+            "label": "Media Upload",
+            "description": "Upload an image or provide an image URL to use as the first frame for video generation.",
+            "category": "input",
+            "fields": [
+              {
+                "key": "mediaUrl",
+                "label": "Image URL",
+                "placeholder": "https://cdn.example.com/asset.png"
+              }
+            ],
+            "values": {
+              "mediaUrl": "",
+              "status": "ready",
+              "mediaDataUrl": "http://localhost:3000/uploads/mX9eGucF4U3DO3_T5L_gq.jpg",
+              "mimeType": "image/jpeg",
+              "fileName": "c-d-x-PDX_a_82obo-unsplash.jpg"
+            },
+            "status": "ready"
+          },
+          "width": 529,
+          "height": 507,
+          "selected": true,
+          "dragging": false
+        },
+        {
+          "id": "YMS0CJ7IZ08VeFMtBtnpp",
+          "type": "videoRender",
+          "position": {
+            "x": 480,
+            "y": 120
+          },
+          "data": {
+            "label": "Video Render",
+            "description": "Generate render instructions and export-ready motion output.",
+            "category": "output",
+            "values": {},
+            "status": "idle"
+          },
+          "width": 394,
+          "height": 193
+        }
+      ],
+      "edges": [
+        {
+          "id": "pD9AD7tdOvXGUx4_5xW-H",
+          "source": "ZxHrHKWuCbzU3qRDdxFMd",
+          "target": "YMS0CJ7IZ08VeFMtBtnpp"
+        },
+        {
+          "id": "qKu25T0GYcWTWQFiO3XeO",
+          "source": "dqYka8P_e3AHH2u6pgnm-",
+          "target": "YMS0CJ7IZ08VeFMtBtnpp"
+        }
+      ],
+      "createdAt": "2026-04-25T13:49:38.654Z",
+      "updatedAt": "2026-04-25T13:49:48.794Z"
+    }
+  },
+  "renderJobs": {
+    "KgCXmcm07ol8TWamkwgwk": {
+      "id": "KgCXmcm07ol8TWamkwgwk",
+      "workflowId": "UtXb7SGJ4z3GR_Oo5f82a",
+      "status": "processing",
+      "outputUrl": null,
+      "payload": {},
+      "error": null,
+      "createdAt": "2026-04-25T13:36:27.086Z",
+      "updatedAt": "2026-04-25T13:36:27.089Z"
+    },
+    "roqs_kPbK63UPXKiGlEdh": {
+      "id": "roqs_kPbK63UPXKiGlEdh",
+      "workflowId": "UtXb7SGJ4z3GR_Oo5f82a",
+      "status": "processing",
+      "outputUrl": null,
+      "payload": {},
+      "error": null,
+      "createdAt": "2026-04-25T13:36:46.143Z",
+      "updatedAt": "2026-04-25T13:36:46.146Z"
+    },
+    "aT3HDdGh5cPXjv8e-QmpI": {
+      "id": "aT3HDdGh5cPXjv8e-QmpI",
+      "workflowId": "UtXb7SGJ4z3GR_Oo5f82a",
+      "status": "processing",
+      "outputUrl": null,
+      "payload": {},
+      "error": null,
+      "createdAt": "2026-04-25T13:36:47.015Z",
+      "updatedAt": "2026-04-25T13:36:47.018Z"
+    },
+    "YxOp6sAcGsLuZ5UR1pkfe": {
+      "id": "YxOp6sAcGsLuZ5UR1pkfe",
+      "workflowId": "UtXb7SGJ4z3GR_Oo5f82a",
+      "status": "processing",
+      "outputUrl": null,
+      "payload": {},
+      "error": null,
+      "createdAt": "2026-04-25T13:36:47.545Z",
+      "updatedAt": "2026-04-25T13:36:47.551Z"
+    },
+    "MhMufkZYvM0RY3cdEgq1h": {
+      "id": "MhMufkZYvM0RY3cdEgq1h",
+      "workflowId": "UtXb7SGJ4z3GR_Oo5f82a",
+      "status": "processing",
+      "outputUrl": null,
+      "payload": {},
+      "error": null,
+      "createdAt": "2026-04-25T13:36:47.781Z",
+      "updatedAt": "2026-04-25T13:36:47.784Z"
+    },
+    "BiCdIC7tAfd760dOWYGaA": {
+      "id": "BiCdIC7tAfd760dOWYGaA",
+      "workflowId": "UtXb7SGJ4z3GR_Oo5f82a",
+      "status": "completed",
+      "outputUrl": "http://localhost:3000/generated/BiCdIC7tAfd760dOWYGaA.mp4",
+      "payload": {
+        "executionOrder": [
+          "tp9KNfqPEhuw2QeP6REtZ",
+          "JQrTvzdF8xnMCncQRMha4",
+          "V59iXxbpv2PrQ6QtTNyeA"
+        ],
+        "outputs": {
+          "tp9KNfqPEhuw2QeP6REtZ": {
+            "prompt": "create a motion design"
+          },
+          "JQrTvzdF8xnMCncQRMha4": {
+            "mediaUrl": "",
+            "mediaDataUrl": "http://localhost:3000/uploads/QOnQtFIyIPpuSOtM6wXjD.jpg",
+            "mimeType": "image/jpeg",
+            "fileName": "giorgio-trovato-K62u25Jk6vo-unsplash.jpg"
+          },
+          "V59iXxbpv2PrQ6QtTNyeA": {
+            "compositionId": "FlowMotionComposition",
+            "fps": 30,
+            "width": 1920,
+            "height": 1080,
+            "durationInFrames": 0,
+            "prompt": "create a motion design",
+            "scenes": [],
+            "instructions": [],
+            "image": {
+              "sourceUrl": "http://localhost:3000/uploads/QOnQtFIyIPpuSOtM6wXjD.jpg",
+              "mimeType": "image/jpeg",
+              "fileName": "giorgio-trovato-K62u25Jk6vo-unsplash.jpg"
+            }
+          }
+        }
+      },
+      "error": null,
+      "createdAt": "2026-04-25T13:39:15.652Z",
+      "updatedAt": "2026-04-25T13:40:21.236Z"
+    },
+    "IasNRHAEtnTbeshPdGTAC": {
+      "id": "IasNRHAEtnTbeshPdGTAC",
+      "workflowId": "Jk70pFOT3NUBoRLNRq64C",
+      "status": "completed",
+      "outputUrl": "http://localhost:3000/generated/IasNRHAEtnTbeshPdGTAC.mp4",
+      "payload": {
+        "executionOrder": [
+          "ZxHrHKWuCbzU3qRDdxFMd",
+          "dqYka8P_e3AHH2u6pgnm-",
+          "YMS0CJ7IZ08VeFMtBtnpp"
+        ],
+        "outputs": {
+          "ZxHrHKWuCbzU3qRDdxFMd": {
+            "prompt": "create a motion design for this"
+          },
+          "dqYka8P_e3AHH2u6pgnm-": {
+            "mediaUrl": "",
+            "mediaDataUrl": "http://localhost:3000/uploads/mX9eGucF4U3DO3_T5L_gq.jpg",
+            "mimeType": "image/jpeg",
+            "fileName": "c-d-x-PDX_a_82obo-unsplash.jpg"
+          },
+          "YMS0CJ7IZ08VeFMtBtnpp": {
+            "compositionId": "FlowMotionComposition",
+            "fps": 30,
+            "width": 1920,
+            "height": 1080,
+            "durationInFrames": 0,
+            "prompt": "create a motion design for this",
+            "scenes": [],
+            "instructions": [],
+            "image": {
+              "sourceUrl": "http://localhost:3000/uploads/mX9eGucF4U3DO3_T5L_gq.jpg",
+              "mimeType": "image/jpeg",
+              "fileName": "c-d-x-PDX_a_82obo-unsplash.jpg"
+            }
+          }
+        }
+      },
+      "error": null,
+      "createdAt": "2026-04-25T13:49:48.812Z",
+      "updatedAt": "2026-04-25T13:50:58.907Z"
+    }
+  }
+}

@@ -1,4 +1,5 @@
-import { supabase } from "@/lib/supabase";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
 type GenerateVideoArgs = {
   apiKey?: string;
@@ -259,25 +260,16 @@ export async function generateVideoWithGemini(args: GenerateVideoArgs) {
   const buffer = Buffer.from(await videoResponse.arrayBuffer());
   const fileName = `${args.jobId}.mp4`;
 
-  if (!supabase) {
-    throw new Error("Supabase is not configured. Please add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to your environment variables.");
-  }
+  const generatedDir = path.join(process.cwd(), "public", "generated");
+  await fs.mkdir(generatedDir, { recursive: true });
+  const outPath = path.join(generatedDir, fileName);
+  await fs.writeFile(outPath, buffer);
 
-  const { data, error } = await supabase.storage
-    .from("videos")
-    .upload(fileName, buffer, {
-      contentType: "video/mp4",
-      upsert: true,
-    });
-
-  if (error) {
-    throw new Error(`Failed to upload video to Supabase: ${error.message}`);
-  }
-
-  const { data: publicUrlData } = supabase.storage.from("videos").getPublicUrl(fileName);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const publicUrl = `${baseUrl}/generated/${fileName}`;
 
   return {
-    outputUrl: publicUrlData.publicUrl,
+    outputUrl: publicUrl,
     provider: "gemini-veo",
     model,
   };

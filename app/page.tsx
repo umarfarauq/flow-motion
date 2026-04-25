@@ -27,7 +27,14 @@ export default function LandingPage() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to create project");
+        let message = "Failed to create project.";
+        try {
+          const payload = (await res.json()) as { error?: string };
+          if (payload?.error) message = payload.error;
+        } catch {
+          // ignore
+        }
+        throw new Error(message);
       }
 
       const { workflowId } = await res.json();
@@ -35,7 +42,7 @@ export default function LandingPage() {
     } catch (error) {
       console.error(error);
       setIsSubmitting(false);
-      alert("Failed to create project. Please ensure your database is running and reachable.");
+      alert(error instanceof Error ? error.message : "Failed to create project.");
     }
   };
 
@@ -51,38 +58,35 @@ export default function LandingPage() {
       {/* Hero Background blobs */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-500/15 rounded-full blur-[128px] -z-10" />
       <div className="absolute top-[20%] right-1/4 w-96 h-96 bg-purple-500/15 rounded-full blur-[128px] -z-10" />
-      
+
       {/* Main Hero Section */}
       <main className="w-full max-w-5xl flex flex-col items-center pt-32 pb-20 px-6 z-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-8">
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[11px] uppercase tracking-[0.2em] text-white/70 font-medium">Seedance 2.0 Engine Live</span>
-        </div>
-        
+        <img src="/logo.png" alt="Flow Motion Logo" className="w-16 h-16 mb-8" />
+
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-center mb-6 bg-gradient-to-br from-white via-white/90 to-white/30 bg-clip-text text-transparent max-w-4xl leading-[1.1]">
           Enterprise AI Motion Graphics
         </h1>
         <p className="text-lg md:text-xl text-white/50 text-center mb-12 max-w-2xl leading-relaxed">
-          Transform your product descriptions into cinematic, high-converting video assets in seconds. Powered by the state-of-the-art Seedance video model.
+          Transform your product descriptions into cinematic, high-converting video assets in seconds.
         </p>
 
-        <form 
+        <form
           onSubmit={handleSubmit}
           className="w-full max-w-3xl relative group"
         >
           <div className="absolute -inset-1 bg-gradient-to-r from-sky-500 via-purple-500 to-sky-500 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-500 animate-gradient-xy" />
-          
+
           <div className="relative flex flex-col sm:flex-row items-end bg-[#111217] rounded-3xl border border-white/10 p-2 shadow-2xl transition-all focus-within:border-white/20 focus-within:bg-[#16171d]">
             <div className="flex flex-col justify-end w-full sm:w-auto pb-4 pl-4 shrink-0 border-b border-white/5 sm:border-b-0 sm:border-r border-dashed mb-2 sm:mb-0 mr-2">
-               <select 
-                 className="bg-transparent text-white/60 text-sm outline-none cursor-pointer hover:text-white transition-colors uppercase tracking-wider font-semibold appearance-none pr-4"
-                 value={mode}
-                 onChange={(e) => setMode(e.target.value)}
-                 disabled={isSubmitting}
-               >
-                 <option value="generate" className="bg-[#111217]">✨ Generate</option>
-                 <option value="canvas" className="bg-[#111217]">🎨 Canvas</option>
-               </select>
+              <select
+                className="bg-transparent text-white/60 text-sm outline-none cursor-pointer hover:text-white transition-colors uppercase tracking-wider font-semibold appearance-none pr-4"
+                value={mode}
+                onChange={(e) => setMode(e.target.value)}
+                disabled={isSubmitting}
+              >
+                <option value="generate" className="bg-[#111217]">✨ Generate</option>
+                <option value="canvas" className="bg-[#111217]">🎨 Canvas</option>
+              </select>
             </div>
             <textarea
               ref={inputRef}
@@ -140,7 +144,7 @@ export default function LandingPage() {
               </svg>
             </div>
             <h3 className="text-xl font-semibold mb-3 text-white/90">Image-to-Video Workflow</h3>
-            <p className="text-white/50 leading-relaxed text-sm">Upload a clean screenshot of your platform and let the Seedance model animate elements, reveals, and transition effects.</p>
+            <p className="text-white/50 leading-relaxed text-sm">Upload a clean screenshot of your platform and generate motion assets with smooth reveals and transitions.</p>
           </div>
 
           <div className="bg-white/[0.02] border border-white/5 p-8 rounded-3xl hover:bg-white/[0.04] transition-colors">

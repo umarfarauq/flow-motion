@@ -100,8 +100,18 @@ export const nodeExecutors: Record<string, NodeExecutor> = {
       animation: (animation as Record<string, unknown>) ?? null,
       image: mediaOutput
         ? {
-            dataUrl: typeof mediaOutput.mediaDataUrl === "string" ? mediaOutput.mediaDataUrl : undefined,
-            sourceUrl: typeof mediaOutput.mediaUrl === "string" ? mediaOutput.mediaUrl : undefined,
+            // `mediaDataUrl` is now frequently a normal URL (we store uploads as `/public/uploads/...`).
+            // Treat it as a source URL unless it is a real data URL.
+            dataUrl:
+              typeof mediaOutput.mediaDataUrl === "string" && mediaOutput.mediaDataUrl.startsWith("data:")
+                ? mediaOutput.mediaDataUrl
+                : undefined,
+            sourceUrl:
+              typeof mediaOutput.mediaUrl === "string" && mediaOutput.mediaUrl
+                ? mediaOutput.mediaUrl
+                : typeof mediaOutput.mediaDataUrl === "string" && mediaOutput.mediaDataUrl
+                  ? mediaOutput.mediaDataUrl
+                  : undefined,
             mimeType: typeof mediaOutput.mimeType === "string" ? mediaOutput.mimeType : undefined,
             fileName: typeof mediaOutput.fileName === "string" ? mediaOutput.fileName : undefined,
           }

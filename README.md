@@ -55,7 +55,7 @@ npm run dev
 
 ## Required environment
 
-- `DATABASE_URL` for PostgreSQL
+- Firebase credentials (client + admin) via `.env.local`
 - `REDIS_URL` for BullMQ workers
 - `GEMINI_API_KEY` for storyboard generation and Veo video rendering
 

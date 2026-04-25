@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
 import { nanoid } from "nanoid";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
 export const runtime = "nodejs";
 
@@ -13,34 +14,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Supabase is not configured. Please check your environment variables." },
-        { status: 500 }
-      );
-    }
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    
+
     // Create a unique filename while preserving extension
     const extension = file.name.split('.').pop() || 'png';
     const fileName = `${nanoid()}.${extension}`;
 
-    const { error } = await supabase.storage
-      .from("assets")
-      .upload(fileName, buffer, {
-        contentType: file.type || "image/png",
-        upsert: true,
-      });
+    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    await fs.mkdir(uploadsDir, { recursive: true });
+    const outPath = path.join(uploadsDir, fileName);
+    await fs.writeFile(outPath, buffer);
 
-    if (error) {
-      throw new Error(`Supabase upload failed: ${error.message}`);
-    }
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const publicUrl = `${baseUrl}/uploads/${fileName}`;
 
-    const { data: publicUrlData } = supabase.storage.from("assets").getPublicUrl(fileName);
-
-    return NextResponse.json({ 
-      url: publicUrlData.publicUrl,
+    return NextResponse.json({
+      url: publicUrl,
       fileName: file.name,
       mimeType: file.type
     });

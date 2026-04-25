@@ -1,25 +1,99 @@
-import type { Workflow, RenderJob, JobStatus } from "@prisma/client";
 import type { FlowEdge, FlowNode } from "@/types/flow";
-import { prisma } from "@/lib/prisma";
+import { nanoid } from "nanoid";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+
+export type JobStatus = "pending" | "processing" | "completed" | "failed";
+
+export type WorkflowRecord = {
+  id: string;
+  projectId: string;
+  name: string;
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProjectRecord = {
+  id: string;
+  userId: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RenderJobRecord = {
+  id: string;
+  workflowId: string;
+  status: JobStatus;
+  outputUrl?: string | null;
+  payload?: Record<string, unknown>;
+  error?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+type StoreShape = {
+  projects: Record<string, ProjectRecord>;
+  workflows: Record<string, WorkflowRecord>;
+  renderJobs: Record<string, RenderJobRecord>;
+};
+
+const STORE_DIR = path.join(process.cwd(), "data");
+const STORE_PATH = path.join(STORE_DIR, "store.json");
+
+async function ensureStore() {
+  await fs.mkdir(STORE_DIR, { recursive: true });
+  try {
+    await fs.access(STORE_PATH);
+  } catch {
+    const initial: StoreShape = { projects: {}, workflows: {}, renderJobs: {} };
+    await fs.writeFile(STORE_PATH, JSON.stringify(initial, null, 2), "utf8");
+  }
+}
+
+async function readStore(): Promise<StoreShape> {
+  await ensureStore();
+  const raw = await fs.readFile(STORE_PATH, "utf8");
+  const parsed = JSON.parse(raw) as Partial<StoreShape>;
+  return {
+    projects: parsed.projects ?? {},
+    workflows: parsed.workflows ?? {},
+    renderJobs: parsed.renderJobs ?? {},
+  };
+}
+
+async function writeStore(next: StoreShape) {
+  await ensureStore();
+  const tmp = `${STORE_PATH}.${Date.now()}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(next, null, 2), "utf8");
+  await fs.rename(tmp, STORE_PATH);
+}
 
 export async function createDefaultProject() {
-  const email = "demo@flowmotion.ai";
+  const projectId = "flowmotion-demo-project";
+  const ts = nowIso();
+  const store = await readStore();
 
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: { email },
-  });
+  const existing = store.projects[projectId];
+  if (existing) return existing;
 
-  return await prisma.project.upsert({
-    where: { id: "flowmotion-demo-project" },
-    update: {},
-    create: {
-      id: "flowmotion-demo-project",
-      name: "FlowMotion Demo",
-      userId: user.id,
-    },
-  });
+  const project: ProjectRecord = {
+    id: projectId,
+    userId: "demo@flowmotion.ai",
+    name: "FlowMotion Demo",
+    createdAt: ts,
+    updatedAt: ts,
+  };
+
+  store.projects[projectId] = project;
+  await writeStore(store);
+  return project;
 }
 
 export async function createProjectWithWorkflow(input: {
@@ -29,27 +103,33 @@ export async function createProjectWithWorkflow(input: {
   nodes: FlowNode[];
   edges: FlowEdge[];
 }) {
-  const user = await prisma.user.upsert({
-    where: { email: `${input.userId}@flowmotion.ai` },
-    update: {},
-    create: { id: input.userId, email: `${input.userId}@flowmotion.ai` },
-  });
+  const ts = nowIso();
+  const store = await readStore();
 
-  const project = await prisma.project.create({
-    data: {
-      userId: user.id,
-      name: input.projectName,
-    },
-  });
+  const projectId = nanoid();
+  const workflowId = nanoid();
 
-  const workflow = await prisma.workflow.create({
-    data: {
-      projectId: project.id,
-      name: input.workflowName,
-      nodes: input.nodes as any,
-      edges: input.edges as any,
-    },
-  });
+  const project: ProjectRecord = {
+    id: projectId,
+    userId: input.userId,
+    name: input.projectName,
+    createdAt: ts,
+    updatedAt: ts,
+  };
+
+  const workflow: WorkflowRecord = {
+    id: workflowId,
+    projectId,
+    name: input.workflowName,
+    nodes: input.nodes,
+    edges: input.edges,
+    createdAt: ts,
+    updatedAt: ts,
+  };
+
+  store.projects[projectId] = project;
+  store.workflows[workflowId] = workflow;
+  await writeStore(store);
 
   return { project, workflow };
 }
@@ -61,43 +141,89 @@ export async function saveWorkflow(input: {
   nodes: FlowNode[];
   edges: FlowEdge[];
 }) {
-  if (input.workflowId) {
-    return await prisma.workflow.update({
-      where: { id: input.workflowId },
-      data: {
-        name: input.name,
-        nodes: input.nodes as any,
-        edges: input.edges as any,
-      },
-    });
-  }
+  const ts = nowIso();
+  const store = await readStore();
 
-  return await prisma.workflow.create({
-    data: {
+  if (input.workflowId) {
+    const existing = store.workflows[input.workflowId];
+    const next: WorkflowRecord = {
+      id: input.workflowId,
       projectId: input.projectId,
       name: input.name,
-      nodes: input.nodes as any,
-      edges: input.edges as any,
-    },
-  });
+      nodes: input.nodes,
+      edges: input.edges,
+      createdAt: existing?.createdAt ?? ts,
+      updatedAt: ts,
+    };
+    store.workflows[input.workflowId] = next;
+    await writeStore(store);
+    return next;
+  }
+
+  const workflowId = nanoid();
+  const workflow: WorkflowRecord = {
+    id: workflowId,
+    projectId: input.projectId,
+    name: input.name,
+    nodes: input.nodes,
+    edges: input.edges,
+    createdAt: ts,
+    updatedAt: ts,
+  };
+
+  store.workflows[workflowId] = workflow;
+  await writeStore(store);
+  return workflow;
 }
 
 export async function getWorkflowById(id: string) {
-  const workflow = await prisma.workflow.findUnique({
-    where: { id },
-  });
-
-  if (!workflow) return null;
-  return normalizeWorkflow(workflow);
+  const store = await readStore();
+  return store.workflows[id] ?? null;
 }
 
 export async function createRenderJob(workflowId: string) {
-  return await prisma.renderJob.create({
-    data: {
-      workflowId,
-      status: "pending",
-    },
-  });
+  const ts = nowIso();
+  const store = await readStore();
+  const jobId = nanoid();
+  const job: RenderJobRecord = {
+    id: jobId,
+    workflowId,
+    status: "pending",
+    createdAt: ts,
+    updatedAt: ts,
+  };
+
+  store.renderJobs[jobId] = job;
+  await writeStore(store);
+  return job;
+}
+
+export async function getProjectById(projectId: string) {
+  const store = await readStore();
+  return store.projects[projectId] ?? null;
+}
+
+export async function updateProjectName(projectId: string, name: string) {
+  const store = await readStore();
+  const existing = store.projects[projectId];
+  if (!existing) {
+    const ts = nowIso();
+    const created: ProjectRecord = {
+      id: projectId,
+      userId: "local-user",
+      name,
+      createdAt: ts,
+      updatedAt: ts,
+    };
+    store.projects[projectId] = created;
+    await writeStore(store);
+    return created;
+  }
+
+  const next: ProjectRecord = { ...existing, name, updatedAt: nowIso() };
+  store.projects[projectId] = next;
+  await writeStore(store);
+  return next;
 }
 
 export async function updateRenderJob(
@@ -109,35 +235,27 @@ export async function updateRenderJob(
     error?: string | null;
   },
 ) {
-  return await prisma.renderJob.update({
-    where: { id: jobId },
-    data: {
-      status: input.status,
-      outputUrl: input.outputUrl,
-      payload: input.payload as any,
-      error: input.error,
-    },
-  });
+  const store = await readStore();
+  const existing = store.renderJobs[jobId];
+  const ts = nowIso();
+  const next: RenderJobRecord = {
+    id: jobId,
+    workflowId: existing?.workflowId ?? "unknown",
+    status: input.status,
+    outputUrl: input.outputUrl ?? null,
+    payload: input.payload ?? existing?.payload ?? {},
+    error: input.error ?? null,
+    createdAt: existing?.createdAt ?? ts,
+    updatedAt: ts,
+  };
+  store.renderJobs[jobId] = next;
+  await writeStore(store);
+  return next;
 }
 
 export async function getRenderJob(jobId: string) {
-  const job = await prisma.renderJob.findUnique({
-    where: { id: jobId },
-  });
-  return job ? normalizeRenderJob(job) : null;
-}
-
-export function normalizeWorkflow(workflow: Workflow) {
-  return {
-    ...workflow,
-    nodes: workflow.nodes as unknown as FlowNode[],
-    edges: workflow.edges as unknown as FlowEdge[],
-  };
-}
-
-export function normalizeRenderJob(job: RenderJob) {
-  return {
-    ...job,
-    payload: (job.payload ?? {}) as Record<string, unknown>,
-  };
+  const store = await readStore();
+  const job = store.renderJobs[jobId];
+  if (!job) return null;
+  return { ...job, payload: job.payload ?? {} };
 }

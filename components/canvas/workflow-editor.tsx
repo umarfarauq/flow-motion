@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Image from "next/image";
 import ReactFlow, {
   Background,
   Controls,
@@ -41,6 +42,8 @@ function WorkflowEditorInner() {
   const [message, setMessage] = useState("Canvas ready.");
   const [isPending, startTransition] = useTransition();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [projectName, setProjectName] = useState<string>("");
+  const [isSavingProjectName, setIsSavingProjectName] = useState(false);
 
   const {
     workflowId,
@@ -90,6 +93,51 @@ function WorkflowEditorInner() {
       setGeminiApiKey(savedKey);
     }
   }, [setGeminiApiKey]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+
+    async function loadProject() {
+      try {
+        const res = await fetch(`/api/projects/${projectId}`, { cache: "no-store" });
+        const payload = await res.json();
+        if (!res.ok || cancelled) return;
+        setProjectName(payload.project?.name ?? "");
+      } catch {
+        // ignore
+      }
+    }
+
+    void loadProject();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  async function saveProjectName(nextName: string) {
+    if (!projectId) return;
+    const name = nextName.trim();
+    if (!name) return;
+    setIsSavingProjectName(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload.error || "Unable to update project name.");
+      }
+      setProjectName(payload.project?.name ?? name);
+      setMessage("Project name updated.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to update project name.");
+    } finally {
+      setIsSavingProjectName(false);
+    }
+  }
 
   useEffect(() => {
     if (!lastJobId) {
@@ -286,7 +334,11 @@ function WorkflowEditorInner() {
                     disabled={isPending}
                     title="Generate Video"
                   >
-                    <IconPlay />
+                    {isExecuting ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+                    ) : (
+                      <IconPlay />
+                    )}
                   </Button>
                 </>
               ) : (
@@ -300,7 +352,16 @@ function WorkflowEditorInner() {
                     onClick={() => startTransition(() => void executeWorkflow())}
                     disabled={isPending}
                   >
-                    Generate Video
+                    <span className="inline-flex items-center gap-2">
+                      {isExecuting ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+                          Generating…
+                        </span>
+                      ) : (
+                        "Generate Video"
+                      )}
+                    </span>
                   </Button>
                   <div className="rounded-[24px] border border-white/10 bg-white/[0.06] px-4 py-4 text-xs leading-5 text-white/[0.76]">
                     {message}
@@ -325,7 +386,28 @@ function WorkflowEditorInner() {
           <header className="grid grid-cols-[1fr_auto] items-center gap-4 border-b border-white/10 px-7 py-5">
             <div>
               <div className="text-[11px] uppercase tracking-[0.24em] text-white/[0.45]">Workflow</div>
-              <div className="mt-1 text-xl font-medium tracking-[-0.02em]">{workflowName}</div>
+              <div className="mt-2 flex items-center gap-3 min-w-0">
+                <Image src="/logo.png" alt="Flow Motion" width={28} height={28} className="shrink-0" />
+                <div className="text-xl font-medium tracking-[-0.02em] truncate">{workflowName}</div>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="text-[11px] uppercase tracking-[0.24em] text-white/[0.45] w-20 shrink-0">
+                  Project
+                </div>
+                <input
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  onBlur={() => void saveProjectName(projectName)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      (e.currentTarget as HTMLInputElement).blur();
+                    }
+                  }}
+                  placeholder="Untitled project"
+                  disabled={!projectId || isSavingProjectName}
+                  className="h-10 w-full max-w-[420px] rounded-2xl border border-white/10 bg-white/[0.06] px-4 text-sm text-white/80 outline-none placeholder:text-white/30 disabled:opacity-60"
+                />
+              </div>
             </div>
             <div className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs uppercase tracking-[0.16em] text-white/60">
               Canvas
