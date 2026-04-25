@@ -3,41 +3,9 @@ import type { FlowEdge, FlowNode } from "@/types/flow";
 import { prisma } from "@/lib/prisma";
 import { nanoid } from "nanoid";
 
-const memoryProjects = new Map<
-  string,
-  {
-    id: string;
-    userId: string;
-    name: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }
->();
-const memoryWorkflows = new Map<
-  string,
-  {
-    id: string;
-    projectId: string;
-    name: string;
-    nodes: FlowNode[];
-    edges: FlowEdge[];
-    createdAt: Date;
-    updatedAt: Date;
-  }
->();
-const memoryJobs = new Map<
-  string,
-  {
-    id: string;
-    workflowId: string;
-    status: JobStatus;
-    outputUrl: string | null;
-    payload: Record<string, unknown>;
-    error: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-  }
->();
+const memoryProjects = new Map<string, any>();
+const memoryWorkflows = new Map<string, any>();
+const memoryJobs = new Map<string, any>();
 
 export async function createDefaultProject() {
   const email = "demo@flowmotion.ai";
@@ -49,7 +17,7 @@ export async function createDefaultProject() {
       create: { email },
     });
 
-    return prisma.project.upsert({
+    return await prisma.project.upsert({
       where: { id: "flowmotion-demo-project" },
       update: {},
       create: {
@@ -58,21 +26,60 @@ export async function createDefaultProject() {
         userId: user.id,
       },
     });
-  } catch {
-    const existing = memoryProjects.get("flowmotion-demo-project");
-    if (existing) {
-      return existing;
+  } catch (error) {
+    console.warn("Database connection failed. Falling back to in-memory project.");
+    const id = "flowmotion-demo-project";
+    if (!memoryProjects.has(id)) {
+      memoryProjects.set(id, { id, name: "FlowMotion Demo", userId: "local-user" });
     }
+    return memoryProjects.get(id);
+  }
+}
 
-    const project = {
-      id: "flowmotion-demo-project",
-      userId: "local-user",
-      name: "FlowMotion Demo",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+export async function createProjectWithWorkflow(input: {
+  userId: string;
+  projectName: string;
+  workflowName: string;
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+}) {
+  try {
+    const user = await prisma.user.upsert({
+      where: { email: `${input.userId}@flowmotion.ai` },
+      update: {},
+      create: { id: input.userId, email: `${input.userId}@flowmotion.ai` },
+    });
+
+    const project = await prisma.project.create({
+      data: {
+        userId: user.id,
+        name: input.projectName,
+      },
+    });
+
+    const workflow = await prisma.workflow.create({
+      data: {
+        projectId: project.id,
+        name: input.workflowName,
+        nodes: input.nodes as any,
+        edges: input.edges as any,
+      },
+    });
+
+    return { project, workflow };
+  } catch (error) {
+    console.warn("Database connection failed. Falling back to in-memory workflow creation.");
+    const project = { id: nanoid(), name: input.projectName, userId: input.userId };
+    const workflow = {
+      id: nanoid(),
+      projectId: project.id,
+      name: input.workflowName,
+      nodes: input.nodes,
+      edges: input.edges,
     };
     memoryProjects.set(project.id, project);
-    return project;
+    memoryWorkflows.set(workflow.id, workflow);
+    return { project, workflow };
   }
 }
 
@@ -83,8 +90,8 @@ export async function saveWorkflow(input: {
   nodes: FlowNode[];
   edges: FlowEdge[];
 }) {
-  if (input.workflowId) {
-    try {
+  try {
+    if (input.workflowId) {
       return await prisma.workflow.update({
         where: { id: input.workflowId },
         data: {
@@ -93,23 +100,8 @@ export async function saveWorkflow(input: {
           edges: input.edges as any,
         },
       });
-    } catch {
-      const existing = memoryWorkflows.get(input.workflowId);
-      if (existing) {
-        const updated = {
-          ...existing,
-          name: input.name,
-          nodes: input.nodes,
-          edges: input.edges,
-          updatedAt: new Date(),
-        };
-        memoryWorkflows.set(updated.id, updated);
-        return updated;
-      }
     }
-  }
 
-  try {
     return await prisma.workflow.create({
       data: {
         projectId: input.projectId,
@@ -118,15 +110,13 @@ export async function saveWorkflow(input: {
         edges: input.edges as any,
       },
     });
-  } catch {
+  } catch (error) {
     const workflow = {
-      id: input.workflowId ?? nanoid(),
+      id: input.workflowId || nanoid(),
       projectId: input.projectId,
       name: input.name,
       nodes: input.nodes,
       edges: input.edges,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     };
     memoryWorkflows.set(workflow.id, workflow);
     return workflow;
@@ -139,13 +129,10 @@ export async function getWorkflowById(id: string) {
       where: { id },
     });
 
-    if (!workflow) {
-      return null;
-    }
-
+    if (!workflow) return null;
     return normalizeWorkflow(workflow);
-  } catch {
-    return memoryWorkflows.get(id) ?? null;
+  } catch (error) {
+    return memoryWorkflows.get(id) || null;
   }
 }
 
@@ -157,17 +144,8 @@ export async function createRenderJob(workflowId: string) {
         status: "pending",
       },
     });
-  } catch {
-    const job = {
-      id: nanoid(),
-      workflowId,
-      status: "pending" as JobStatus,
-      outputUrl: null,
-      payload: {},
-      error: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  } catch (error) {
+    const job = { id: nanoid(), workflowId, status: "pending", outputUrl: null, payload: {} };
     memoryJobs.set(job.id, job);
     return job;
   }
@@ -192,22 +170,14 @@ export async function updateRenderJob(
         error: input.error,
       },
     });
-  } catch {
-    const existing = memoryJobs.get(jobId);
-    if (!existing) {
-      throw new Error(`Render job ${jobId} not found.`);
+  } catch (error) {
+    const job = memoryJobs.get(jobId);
+    if (job) {
+      const updated = { ...job, ...input };
+      memoryJobs.set(jobId, updated);
+      return updated;
     }
-
-    const updated = {
-      ...existing,
-      status: input.status,
-      outputUrl: input.outputUrl ?? existing.outputUrl,
-      payload: input.payload ?? existing.payload,
-      error: input.error ?? existing.error,
-      updatedAt: new Date(),
-    };
-    memoryJobs.set(jobId, updated);
-    return updated;
+    throw new Error(`Job ${jobId} not found in memory.`);
   }
 }
 
@@ -216,10 +186,9 @@ export async function getRenderJob(jobId: string) {
     const job = await prisma.renderJob.findUnique({
       where: { id: jobId },
     });
-
     return job ? normalizeRenderJob(job) : null;
-  } catch {
-    return memoryJobs.get(jobId) ?? null;
+  } catch (error) {
+    return memoryJobs.get(jobId) || null;
   }
 }
 

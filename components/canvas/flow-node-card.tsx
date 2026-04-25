@@ -109,14 +109,32 @@ export const FlowNodeCard = memo(function FlowNodeCard({ id, data, selected, wid
                     return;
                   }
 
-                  const reader = new FileReader();
-                  reader.onload = () => {
-                    const result = typeof reader.result === "string" ? reader.result : "";
-                    updateNodeField(id, "mediaDataUrl", result);
-                    updateNodeField(id, "mimeType", file.type);
-                    updateNodeField(id, "fileName", file.name);
-                  };
-                  reader.readAsDataURL(file);
+                  updateNodeField(id, "status", "uploading");
+
+                  try {
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    const response = await fetch("/api/upload", {
+                      method: "POST",
+                      body: formData,
+                    });
+
+                    if (!response.ok) {
+                      throw new Error("Upload failed");
+                    }
+
+                    const result = await response.json();
+                    
+                    updateNodeField(id, "mediaDataUrl", result.url);
+                    updateNodeField(id, "mimeType", result.mimeType);
+                    updateNodeField(id, "fileName", result.fileName);
+                    updateNodeField(id, "status", "ready");
+                  } catch (error) {
+                    console.error("Upload error:", error);
+                    updateNodeField(id, "status", "failed");
+                    alert("Failed to upload image. Please check your Supabase connection.");
+                  }
                 }}
               />
             </label>
