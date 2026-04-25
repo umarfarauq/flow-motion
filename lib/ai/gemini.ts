@@ -1,5 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { supabase } from "@/lib/supabase";
 
 type GenerateVideoArgs = {
   apiKey?: string;
@@ -204,7 +203,12 @@ export async function generateVideoWithGemini(args: GenerateVideoArgs) {
     {
       instances: [
         {
-          prompt: args.prompt,
+          prompt: [
+            "Flat design, 2D UI/UX motion graphics, SaaS product interface animation.",
+            `Focus on: ${args.prompt}`,
+            "Movement rules: Smooth bezier curve animations, hovering cursor interaction, expanding UI cards.",
+            "Style constraints: Minimalist digital interface, high contrast, clean typography, absolutely no humans, no live-action, strictly vector graphics."
+          ].join("\n\n"),
           ...(image ? { image } : {}), // Only include image if present, and only with supported fields
         },
       ],
@@ -240,10 +244,6 @@ export async function generateVideoWithGemini(args: GenerateVideoArgs) {
     throw new Error("Gemini did not return a video.");
   }
 
-  const outputDirectory = path.join(process.cwd(), "public", "generated");
-  await mkdir(outputDirectory, { recursive: true });
-  const outputPath = path.join(outputDirectory, `${args.jobId}.mp4`);
-
   const videoResponse = await fetch(generatedVideoUri, {
     headers: {
       "x-goog-api-key": apiKey,
@@ -257,10 +257,27 @@ export async function generateVideoWithGemini(args: GenerateVideoArgs) {
   }
 
   const buffer = Buffer.from(await videoResponse.arrayBuffer());
-  await writeFile(outputPath, buffer);
+  const fileName = `${args.jobId}.mp4`;
+
+  if (!supabase) {
+    throw new Error("Supabase is not configured. Please add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to your environment variables.");
+  }
+
+  const { data, error } = await supabase.storage
+    .from("videos")
+    .upload(fileName, buffer, {
+      contentType: "video/mp4",
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(`Failed to upload video to Supabase: ${error.message}`);
+  }
+
+  const { data: publicUrlData } = supabase.storage.from("videos").getPublicUrl(fileName);
 
   return {
-    outputUrl: `/generated/${args.jobId}.mp4`,
+    outputUrl: publicUrlData.publicUrl,
     provider: "gemini-veo",
     model,
   };

@@ -6,7 +6,7 @@ const config: Config = {
     "./components/**/*.{ts,tsx}",
     "./store/**/*.{ts,tsx}",
     "./lib/**/*.{ts,tsx}",
-    "./remotion/**/*.{ts,tsx}",
+    "./remotion-studio/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
@@ -15,7 +15,22 @@ const config: Config = {
         foreground: "#000000",
       },
       fontFamily: {
-        sans: ["Arial", "Helvetica", "sans-serif"],
+        sans: ["var(--font-plus-jakarta)", "Arial", "Helvetica", "sans-serif"],
+      },
+      animation: {
+        "gradient-xy": "gradient-xy 3s ease infinite",
+      },
+      keyframes: {
+        "gradient-xy": {
+          "0%, 100%": {
+            "background-size": "400% 400%",
+            "background-position": "left center",
+          },
+          "50%": {
+            "background-size": "200% 200%",
+            "background-position": "right center",
+          },
+        },
       },
     },
   },
