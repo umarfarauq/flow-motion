@@ -1,5 +1,10 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
+function encodeBase64Url(text: string) {
+  return Buffer.from(text, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
 
 type GenerateVideoArgs = {
   apiKey?: string;
@@ -189,6 +194,18 @@ async function fetchRemoteImageAsBase64(sourceUrl: string, mimeType?: string) {
 export async function generateVideoWithGemini(args: GenerateVideoArgs) {
   const apiKey = getApiKey({ apiKey: args.apiKey });
 
+  const MOTION_GRAPHICS_LOCK = [
+    "NON-NEGOTIABLE STYLE LOCK:",
+    "- Output must be a motion-graphics video ONLY.",
+    "- 2D flat/vector design, UI/UX motion graphics, clean shapes, typography, abstract interface elements.",
+    "- No humans, no faces, no hands, no characters, no animals.",
+    "- No live-action, no photorealism, no cinematic camera footage, no real-world scenes.",
+    "- No 3D renders, no clay/plastic look, no depth-of-field, no film grain.",
+    "- Backgrounds should be minimalist and graphic (dark UI / clean gradients / subtle grid).",
+    "- High-contrast, crisp edges, consistent vector style throughout.",
+    "- Movement: smooth bezier easing, clean reveals, cursor-like interactions, expanding UI cards, elegant transitions.",
+  ].join("\n");
+
   let image: { mimeType: string; bytesBase64Encoded: string } | undefined;
   if (args.image?.dataUrl) {
     image = parseDataUrl(args.image.dataUrl);
@@ -205,10 +222,9 @@ export async function generateVideoWithGemini(args: GenerateVideoArgs) {
       instances: [
         {
           prompt: [
-            "Flat design, 2D UI/UX motion graphics, SaaS product interface animation.",
-            `Focus on: ${args.prompt}`,
-            "Movement rules: Smooth bezier curve animations, hovering cursor interaction, expanding UI cards.",
-            "Style constraints: Minimalist digital interface, high contrast, clean typography, absolutely no humans, no live-action, strictly vector graphics."
+            MOTION_GRAPHICS_LOCK,
+            "USER INTENT (must be reinterpreted into motion graphics):",
+            args.prompt,
           ].join("\n\n"),
           ...(image ? { image } : {}), // Only include image if present, and only with supported fields
         },
@@ -245,28 +261,9 @@ export async function generateVideoWithGemini(args: GenerateVideoArgs) {
     throw new Error("Gemini did not return a video.");
   }
 
-  const videoResponse = await fetch(generatedVideoUri, {
-    headers: {
-      "x-goog-api-key": apiKey,
-    },
-    cache: "no-store",
-  });
-
-  if (!videoResponse.ok) {
-    const text = await videoResponse.text();
-    throw new Error(`Gemini video download failed (${videoResponse.status}): ${text}`);
-  }
-
-  const buffer = Buffer.from(await videoResponse.arrayBuffer());
-  const fileName = `${args.jobId}.mp4`;
-
-  const generatedDir = path.join(process.cwd(), "public", "generated");
-  await fs.mkdir(generatedDir, { recursive: true });
-  const outPath = path.join(generatedDir, fileName);
-  await fs.writeFile(outPath, buffer);
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const publicUrl = `${baseUrl}/generated/${fileName}`;
+  // Serverless-safe: do not write video to disk.
+  // Instead, proxy-stream the Gemini URI via our API (keeps API key server-side).
+  const publicUrl = `/api/video-proxy?u=${encodeURIComponent(encodeBase64Url(generatedVideoUri))}`;
 
   return {
     outputUrl: publicUrl,

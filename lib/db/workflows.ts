@@ -44,22 +44,58 @@ type StoreShape = {
   renderJobs: Record<string, RenderJobRecord>;
 };
 
-const STORE_DIR = path.join(process.cwd(), "data");
-const STORE_PATH = path.join(STORE_DIR, "store.json");
+type StorePaths = { dir: string; file: string };
+
+let cachedStorePaths: StorePaths | null = null;
+
+async function resolveStorePaths(): Promise<StorePaths> {
+  if (cachedStorePaths) return cachedStorePaths;
+
+  const preferredDir = process.env.FLOWMOTION_DATA_DIR
+    ? path.resolve(process.env.FLOWMOTION_DATA_DIR)
+    : process.env.NODE_ENV === "production"
+      ? path.join("/tmp", "flowmotion-data")
+      : path.join(process.cwd(), "data");
+
+  const preferred: StorePaths = { dir: preferredDir, file: path.join(preferredDir, "store.json") };
+
+  // On many serverless platforms the function bundle path is read-only (e.g. `/var/task`).
+  // If we cannot create the directory, fall back to `/tmp`.
+  try {
+    await fs.mkdir(preferred.dir, { recursive: true });
+    cachedStorePaths = preferred;
+    return cachedStorePaths;
+  } catch {
+    const tmpDir = path.join("/tmp", "flowmotion-data");
+    cachedStorePaths = { dir: tmpDir, file: path.join(tmpDir, "store.json") };
+    await fs.mkdir(cachedStorePaths.dir, { recursive: true });
+    return cachedStorePaths;
+  }
+}
 
 async function ensureStore() {
-  await fs.mkdir(STORE_DIR, { recursive: true });
+  const paths = await resolveStorePaths();
   try {
-    await fs.access(STORE_PATH);
+    await fs.mkdir(paths.dir, { recursive: true });
+  } catch {
+    // If a bad cached path slipped through (e.g. read-only bundle dir), recover to /tmp.
+    cachedStorePaths = { dir: path.join("/tmp", "flowmotion-data"), file: path.join("/tmp", "flowmotion-data", "store.json") };
+    await fs.mkdir(cachedStorePaths.dir, { recursive: true });
+  }
+  try {
+    const active = await resolveStorePaths();
+    await fs.access(active.file);
   } catch {
     const initial: StoreShape = { projects: {}, workflows: {}, renderJobs: {} };
-    await fs.writeFile(STORE_PATH, JSON.stringify(initial, null, 2), "utf8");
+    const active = await resolveStorePaths();
+    await fs.writeFile(active.file, JSON.stringify(initial, null, 2), "utf8");
   }
 }
 
 async function readStore(): Promise<StoreShape> {
   await ensureStore();
-  const raw = await fs.readFile(STORE_PATH, "utf8");
+  const paths = await resolveStorePaths();
+  const raw = await fs.readFile(paths.file, "utf8");
   const parsed = JSON.parse(raw) as Partial<StoreShape>;
   return {
     projects: parsed.projects ?? {},
@@ -70,9 +106,10 @@ async function readStore(): Promise<StoreShape> {
 
 async function writeStore(next: StoreShape) {
   await ensureStore();
-  const tmp = `${STORE_PATH}.${Date.now()}.tmp`;
+  const paths = await resolveStorePaths();
+  const tmp = `${paths.file}.${Date.now()}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(next, null, 2), "utf8");
-  await fs.rename(tmp, STORE_PATH);
+  await fs.rename(tmp, paths.file);
 }
 
 export async function createDefaultProject() {

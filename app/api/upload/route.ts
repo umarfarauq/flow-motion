@@ -5,6 +5,11 @@ import path from "node:path";
 
 export const runtime = "nodejs";
 
+function toDataUrl(buffer: Buffer, mimeType: string) {
+  const safe = mimeType && mimeType.includes("/") ? mimeType : "application/octet-stream";
+  return `data:${safe};base64,${buffer.toString("base64")}`;
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -20,13 +25,20 @@ export async function POST(request: Request) {
     const extension = file.name.split('.').pop() || 'png';
     const fileName = `${nanoid()}.${extension}`;
 
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await fs.mkdir(uploadsDir, { recursive: true });
-    const outPath = path.join(uploadsDir, fileName);
-    await fs.writeFile(outPath, buffer);
+    let publicUrl: string | null = null;
+    try {
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      await fs.mkdir(uploadsDir, { recursive: true });
+      const outPath = path.join(uploadsDir, fileName);
+      await fs.writeFile(outPath, buffer);
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const publicUrl = `${baseUrl}/uploads/${fileName}`;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      publicUrl = `${baseUrl}/uploads/${fileName}`;
+    } catch {
+      // Serverless prod: cannot write to the bundle/public directory.
+      // Return an inline data URL so the rest of the pipeline still works.
+      publicUrl = toDataUrl(buffer, file.type || "image/png");
+    }
 
     return NextResponse.json({
       url: publicUrl,

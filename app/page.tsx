@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { nanoid } from "nanoid";
+import { createNodeFromTemplate } from "@/lib/node-definitions";
 
 export default function LandingPage() {
   const [prompt, setPrompt] = useState("");
@@ -20,25 +22,26 @@ export default function LandingPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, mode }),
-      });
+      const projectId = nanoid();
 
-      if (!res.ok) {
-        let message = "Failed to create project.";
-        try {
-          const payload = (await res.json()) as { error?: string };
-          if (payload?.error) message = payload.error;
-        } catch {
-          // ignore
-        }
-        throw new Error(message);
-      }
+      const starterText = createNodeFromTemplate("textPrompt", { x: 80, y: 120 });
+      starterText.data.values = { prompt: prompt || "" };
+      const starterMedia = createNodeFromTemplate("mediaUpload", { x: 80, y: 360 });
+      const starterRender = createNodeFromTemplate("videoRender", { x: 480, y: 120 });
 
-      const { workflowId } = await res.json();
-      router.push(`/project/${workflowId}`);
+      const workflow = {
+        workflowId: projectId,
+        projectId,
+        workflowName: "Motion Graphics Workflow",
+        nodes: [starterText, starterMedia, starterRender],
+        edges: [
+          { id: nanoid(), source: starterText.id, target: starterRender.id },
+          { id: nanoid(), source: starterMedia.id, target: starterRender.id },
+        ],
+      };
+
+      window.localStorage.setItem(`flowmotion:workflow:${projectId}`, JSON.stringify(workflow));
+      router.push(`/project?project=${encodeURIComponent(projectId)}`);
     } catch (error) {
       console.error(error);
       setIsSubmitting(false);
